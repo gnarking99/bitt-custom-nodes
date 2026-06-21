@@ -1,4 +1,4 @@
-import { app } from "../../../scripts/app.js";
+import { app } from "../../scripts/app.js";
 
 // Modal CSS limits and styles matching our global app style
 const createModalStyles = () => {
