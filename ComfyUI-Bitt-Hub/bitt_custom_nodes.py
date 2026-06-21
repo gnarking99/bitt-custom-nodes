@@ -25,8 +25,23 @@ class BittCloudSave:
     OUTPUT_NODE = True
     CATEGORY = "Bitt Hub"
 
-    def save_images(self, images, project_name="Default"):
-        return {"ui": {"images": []}}
+    def save_images(self, images, project_name="Default", task_name="Main Task"):
+        results = list()
+        for (batch_number, image) in enumerate(images):
+            i = 255. * image.cpu().numpy()
+            img = Image.fromarray(np.clip(i, 0, 255).astype(np.uint8))
+            
+            filename = f"bitt_cloud_{project_name}_{task_name}_{batch_number}.png".replace(" ", "_")
+            file_path = os.path.join(self.output_dir, filename)
+            img.save(file_path, pnginfo=None, compress_level=4)
+            
+            results.append({
+                "filename": filename,
+                "subfolder": "",
+                "type": self.type
+            })
+
+        return { "ui": { "images": results } }
 
 class BittCloudLoad:
     @classmethod
