@@ -84,6 +84,30 @@
                 background: #ECE6DE;
             }
             
+            .bitt-toolbar {
+                display: flex;
+                align-items: center;
+                gap: 16px;
+                margin-bottom: 24px;
+            }
+            
+            .bitt-back-btn {
+                background: #fff;
+                border: 2px solid #1E1E1E;
+                padding: 8px 16px;
+                font-family: 'Clash Display', sans-serif;
+                font-size: 1rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                cursor: pointer;
+                transition: all 0.2s;
+                box-shadow: 4px 4px 0 var(--accent-orange, #F8A348);
+            }
+            .bitt-back-btn:hover {
+                transform: translate(-2px, -2px);
+                box-shadow: 6px 6px 0 var(--accent-orange, #F8A348);
+            }
+            
             .bitt-grid {
                 display: grid;
                 grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -96,6 +120,19 @@
                 cursor: pointer;
                 position: relative;
                 transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+            .bitt-grid-item.folder {
+                background: #1E1E1E;
+                color: #ECE6DE;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-family: 'Clash Display', sans-serif;
+                font-size: 1.5rem;
+                text-transform: uppercase;
+                padding: 16px;
+                text-align: center;
+                word-break: break-word;
             }
             .bitt-grid-item img, .bitt-grid-item video {
                 width: 100%; height: 100%;
@@ -184,32 +221,6 @@
         const tabs = overlay.querySelectorAll('.bitt-tab');
         const body = overlay.querySelector('#bitt-modal-body');
 
-        const renderGrid = (items, onSelect) => {
-            if (!items || items.length === 0) {
-                body.innerHTML = '<div class="bitt-loading">No media found.</div>';
-                return;
-            }
-            let html = '<div class="bitt-grid">';
-            items.forEach(item => {
-                const name = item.name || item.key || '';
-                const isVideo = name.toLowerCase().match(/\.(mp4|mov|webm|avi)$/);
-                html += `
-                    <div class="bitt-grid-item" data-key="${item.key || name}">
-                        ${isVideo ? `<video src="${item.url}" muted loop onmouseover="this.play()" onmouseout="this.pause()"></video>` : `<img src="${item.url}" />`}
-                        <div class="bitt-grid-item-label">${name.split('/').pop()}</div>
-                    </div>
-                `;
-            });
-            html += '</div>';
-            body.innerHTML = html;
-            
-            body.querySelectorAll('.bitt-grid-item').forEach(el => {
-                el.onclick = () => {
-                    onSelect(el.getAttribute('data-key'));
-                };
-            });
-        };
-
         const handleSelectImage = async (filename) => {
             const imageWidget = node.widgets.find(w => w.name === "image");
             if (imageWidget) {
@@ -220,24 +231,118 @@
             closeModal();
         };
 
-        const loadLocalGallery = async () => {
+        const renderItems = (items, onSelect, onBack, currentPath) => {
+            let html = '';
+            if (currentPath) {
+                html += `
+                <div class="bitt-toolbar">
+                    <button class="bitt-back-btn" id="bitt-back-btn">← Back</button>
+                    <div style="font-family:'Clash Display'; font-size:1.2rem; font-weight:600;">${currentPath}</div>
+                </div>`;
+            }
+            html += '<div class="bitt-grid">';
+            
+            if (!items || items.length === 0) {
+                html += '<div style="grid-column: 1 / -1; font-family: Clash Display; text-align: center; margin-top: 48px;">No media found.</div>';
+            } else {
+                items.forEach(item => {
+                    if (item.isDir) {
+                        html += `
+                            <div class="bitt-grid-item folder" data-action="dir" data-path="${item.key}">
+                                📁<br/>${item.name || item.key}
+                            </div>
+                        `;
+                    } else {
+                        const name = item.name || item.key || '';
+                        const isVideo = name.toLowerCase().match(/\.(mp4|mov|webm|avi)$/);
+                        html += `
+                            <div class="bitt-grid-item" data-action="file" data-key="${item.key || name}">
+                                ${isVideo ? `<video src="${item.url}" muted loop onmouseover="this.play()" onmouseout="this.pause()"></video>` : `<img src="${item.url}" />`}
+                                <div class="bitt-grid-item-label">${name.split('/').pop()}</div>
+                            </div>
+                        `;
+                    }
+                });
+            }
+            html += '</div>';
+            body.innerHTML = html;
+            
+            if (currentPath) {
+                body.querySelector('#bitt-back-btn').onclick = onBack;
+            }
+
+            body.querySelectorAll('.bitt-grid-item').forEach(el => {
+                el.onclick = () => {
+                    const action = el.getAttribute('data-action');
+                    if (action === 'dir') {
+                        onSelect({ type: 'dir', path: el.getAttribute('data-path') });
+                    } else {
+                        onSelect({ type: 'file', key: el.getAttribute('data-key') });
+                    }
+                };
+            });
+        };
+
+        const loadLocalGallery = async (prefix = "") => {
             body.innerHTML = '<div class="bitt-loading">Loading local gallery...</div>';
             try {
-                // localListDir is what the frontend hub uses
-                const items = await window.electronAPI.localListDir("");
-                const mediaItems = items.filter(i => !i.isDir && i.name.match(/\.(png|jpg|jpeg|mp4|mov|webm)$/i));
+                const items = await window.electronAPI.localListDir(prefix);
+                const filteredItems = items.filter(i => i.isDir || i.name.match(/\.(png|jpg|jpeg|mp4|mov|webm)$/i));
                 
-                renderGrid(mediaItems, async (key) => {
-                    body.innerHTML = '<div class="bitt-loading">Syncing to Cloud...</div>';
-                    // Since copyToInput expects the filename, let's pass the relative path
-                    const res = await window.electronAPI.copyToInput(key, 'local');
-                    if (res.success) handleSelectImage(res.filename);
-                    else { alert("Error syncing: " + res.error); loadLocalGallery(); }
-                });
+                renderItems(filteredItems, async (selection) => {
+                    if (selection.type === 'dir') {
+                        loadLocalGallery(selection.path);
+                    } else {
+                        body.innerHTML = '<div class="bitt-loading">Syncing to Cloud...</div>';
+                        const res = await window.electronAPI.copyToInput(selection.key, 'local');
+                        if (res.success) handleSelectImage(res.filename);
+                        else { alert("Error syncing: " + res.error); loadLocalGallery(prefix); }
+                    }
+                }, () => {
+                    const parts = prefix.split('/').filter(Boolean);
+                    parts.pop();
+                    loadLocalGallery(parts.length > 0 ? parts.join('/') : "");
+                }, prefix || "Root");
             } catch (e) { 
                 console.error(e);
                 body.innerHTML = '<div class="bitt-loading">Error loading gallery. Check console.</div>'; 
             }
+        };
+
+        let cachedCloudItems = null;
+
+        const renderCloudProjects = (items) => {
+            const projects = {};
+            items.forEach(item => {
+                if (!item.key.match(/\.(png|jpg|jpeg|mp4|mov|webm)$/i)) return;
+                const p = item.project || "Uncategorized";
+                if (!projects[p]) projects[p] = [];
+                projects[p].push(item);
+            });
+            
+            const projectFolders = Object.keys(projects).map(p => ({
+                isDir: true,
+                key: p,
+                name: p
+            }));
+
+            renderItems(projectFolders, (selection) => {
+                if (selection.type === 'dir') {
+                    renderCloudItems(projects[selection.path], selection.path);
+                }
+            }, null, null);
+        };
+
+        const renderCloudItems = (items, project) => {
+            const mappedItems = items.map(i => ({...i, isDir: false}));
+            renderItems(mappedItems, async (selection) => {
+                body.innerHTML = '<div class="bitt-loading">Downloading & Syncing...</div>';
+                const res = await window.electronAPI.copyToInput(selection.key, 'r2');
+                if (res.success) handleSelectImage(res.filename);
+                else { alert("Error syncing: " + res.error); renderCloudItems(items, project); }
+            }, () => {
+                renderCloudProjects(cachedCloudItems);
+            }, project);
         };
 
         const loadCloudGallery = async () => {
@@ -249,12 +354,8 @@
                     return;
                 }
                 const items = await window.electronAPI.getR2Gallery(user.username);
-                renderGrid(items, async (key) => {
-                    body.innerHTML = '<div class="bitt-loading">Downloading & Syncing...</div>';
-                    const res = await window.electronAPI.copyToInput(key, 'r2');
-                    if (res.success) handleSelectImage(res.filename);
-                    else { alert("Error syncing: " + res.error); loadCloudGallery(); }
-                });
+                cachedCloudItems = items;
+                renderCloudProjects(items);
             } catch (e) { 
                 console.error(e);
                 body.innerHTML = '<div class="bitt-loading">Error loading cloud. Check console.</div>'; 
@@ -298,7 +399,7 @@
                 
                 const target = tab.getAttribute('data-tab');
                 if (target === 'pc') initPcTab();
-                else if (target === 'gallery') loadLocalGallery();
+                else if (target === 'gallery') loadLocalGallery("");
                 else if (target === 'cloud') loadCloudGallery();
             };
         });
@@ -314,9 +415,7 @@
             setTimeout(initExtension, 100);
             return;
         }
-
         console.log("[BittCloudLoad] Extension loading...");
-
         appObj.registerExtension({
             name: "Bitt.CloudLoad",
             nodeCreated(node) {
@@ -336,9 +435,7 @@
                 }
             }
         });
-        
         console.log("[BittCloudLoad] Extension registered!");
     };
-
     initExtension();
 })();
