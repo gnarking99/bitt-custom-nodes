@@ -1,135 +1,155 @@
 (function() {
-    // Modal CSS limits and styles matching our global app style
     const createModalStyles = () => {
         if (document.getElementById('bitt-modal-styles')) return;
         const style = document.createElement('style');
         style.id = 'bitt-modal-styles';
         style.innerHTML = `
+            @import url('https://api.fontshare.com/v2/css?f[]=clash-display@700,600,500&f[]=satoshi@400,500,700&display=swap');
+            
             .bitt-modal-overlay {
                 position: fixed;
                 top: 0; left: 0; width: 100vw; height: 100vh;
-                background: rgba(0, 0, 0, 0.6);
-                backdrop-filter: blur(8px);
+                background: rgba(30, 30, 30, 0.4);
+                backdrop-filter: blur(4px);
                 z-index: 99999999;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                font-family: Inter, sans-serif;
-                color: #fff;
+                font-family: 'Satoshi', sans-serif;
+                color: #1E1E1E;
             }
             .bitt-modal-content {
-                background: rgba(15, 15, 15, 0.85);
-                border: 1px solid rgba(255, 255, 255, 0.1);
-                border-radius: 16px;
-                width: 800px;
-                max-width: 90vw;
-                height: 600px;
+                background: #ECE6DE;
+                border: 3px solid #1E1E1E;
+                width: 900px;
+                max-width: 95vw;
+                height: 700px;
                 max-height: 90vh;
                 display: flex;
                 flex-direction: column;
-                box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-                overflow: hidden;
+                box-shadow: 16px 16px 0 var(--accent-orange, #F8A348);
             }
             .bitt-modal-header {
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-                padding: 16px 24px;
-                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                padding: 24px;
+                border-bottom: 3px solid #1E1E1E;
+                background: #fff;
             }
             .bitt-modal-header h2 {
                 margin: 0;
-                font-size: 1.25rem;
-                font-weight: 600;
+                font-family: 'Clash Display', sans-serif;
+                font-size: 2rem;
+                text-transform: uppercase;
+                letter-spacing: -0.02em;
             }
             .bitt-modal-close {
                 background: transparent;
                 border: none;
-                color: #aaa;
-                font-size: 1.5rem;
+                color: #1E1E1E;
+                font-size: 2rem;
                 cursor: pointer;
-                transition: color 0.2s;
+                transition: transform 0.2s;
+                line-height: 1;
             }
-            .bitt-modal-close:hover { color: #fff; }
+            .bitt-modal-close:hover { transform: scale(1.2) rotate(90deg); }
+            
             .bitt-tabs {
                 display: flex;
-                background: rgba(255, 255, 255, 0.03);
-                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                border-bottom: 3px solid #1E1E1E;
+                background: #fff;
             }
             .bitt-tab {
-                padding: 12px 24px;
+                padding: 16px 32px;
                 cursor: pointer;
-                border-bottom: 2px solid transparent;
-                color: #aaa;
-                font-weight: 500;
+                font-family: 'Clash Display', sans-serif;
+                font-weight: 600;
+                font-size: 1.1rem;
+                text-transform: uppercase;
+                border-right: 3px solid #1E1E1E;
+                color: #444;
                 transition: all 0.2s;
             }
             .bitt-tab.active {
-                color: var(--accent-red, #dc2626);
-                border-bottom-color: var(--accent-red, #dc2626);
-                background: rgba(255, 255, 255, 0.05);
+                background: #1E1E1E;
+                color: #ECE6DE;
             }
-            .bitt-tab:hover:not(.active) { color: #fff; }
+            .bitt-tab:hover:not(.active) { background: #f5f5f5; color: #1E1E1E; }
+            
             .bitt-tab-content {
                 flex: 1;
                 overflow-y: auto;
-                padding: 24px;
+                padding: 32px;
+                background: #ECE6DE;
             }
+            
             .bitt-grid {
                 display: grid;
-                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-                gap: 16px;
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                gap: 24px;
             }
             .bitt-grid-item {
                 aspect-ratio: 1;
-                border-radius: 8px;
-                overflow: hidden;
+                background: #fff;
+                border: 3px solid #1E1E1E;
                 cursor: pointer;
                 position: relative;
-                background: rgba(255, 255, 255, 0.05);
-                border: 1px solid rgba(255, 255, 255, 0.05);
-                transition: all 0.2s;
+                transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
             }
             .bitt-grid-item img, .bitt-grid-item video {
                 width: 100%; height: 100%;
                 object-fit: cover;
+                display: block;
             }
             .bitt-grid-item:hover {
-                transform: scale(1.05);
-                border-color: var(--accent-red, #dc2626);
-                box-shadow: 0 0 15px rgba(220, 38, 38, 0.3);
+                transform: translate(-4px, -4px);
+                box-shadow: 8px 8px 0 var(--accent-orange, #F8A348);
             }
             .bitt-grid-item-label {
                 position: absolute;
                 bottom: 0; left: 0; right: 0;
-                background: rgba(0,0,0,0.7);
-                padding: 4px 8px;
-                font-size: 0.75rem;
+                background: #1E1E1E;
+                color: #fff;
+                padding: 8px 12px;
+                font-size: 0.85rem;
+                font-weight: 500;
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
+                border-top: 3px solid #1E1E1E;
             }
+            
             .bitt-btn {
-                background: var(--accent-red, #dc2626);
+                background: var(--accent-red, #DB4A2B);
                 color: white;
-                border: none;
-                padding: 12px 24px;
-                border-radius: 8px;
-                font-weight: bold;
+                border: 3px solid #1E1E1E;
+                padding: 16px 32px;
+                font-family: 'Clash Display', sans-serif;
+                font-size: 1.2rem;
+                font-weight: 600;
+                text-transform: uppercase;
                 cursor: pointer;
-                transition: all 0.2s;
-                font-family: inherit;
+                transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+                box-shadow: 6px 6px 0 #1E1E1E;
             }
             .bitt-btn:hover {
-                background: #b91c1c;
-                transform: translateY(-2px);
+                transform: translate(-2px, -2px);
+                box-shadow: 8px 8px 0 #1E1E1E;
+            }
+            .bitt-btn:active {
+                transform: translate(4px, 4px);
+                box-shadow: 2px 2px 0 #1E1E1E;
             }
             .bitt-loading {
                 display: flex;
                 justify-content: center;
                 align-items: center;
                 height: 100%;
-                color: #aaa;
+                font-family: 'Clash Display', sans-serif;
+                font-size: 1.5rem;
+                color: #1E1E1E;
+                text-transform: uppercase;
             }
         `;
         document.head.appendChild(style);
@@ -146,7 +166,7 @@
         overlay.innerHTML = `
             <div class="bitt-modal-content">
                 <div class="bitt-modal-header">
-                    <h2>Select Image/Video</h2>
+                    <h2>Select Media</h2>
                     <button class="bitt-modal-close">&times;</button>
                 </div>
                 <div class="bitt-tabs">
@@ -155,9 +175,6 @@
                     <div class="bitt-tab" data-tab="cloud">Cloud R2</div>
                 </div>
                 <div class="bitt-tab-content" id="bitt-modal-body">
-                    <div style="display:flex; height:100%; align-items:center; justify-content:center;">
-                        <button class="bitt-btn" id="bitt-upload-pc">Select File from Computer</button>
-                    </div>
                 </div>
             </div>
         `;
@@ -174,11 +191,12 @@
             }
             let html = '<div class="bitt-grid">';
             items.forEach(item => {
-                const isVideo = item.name.endsWith('.mp4');
+                const name = item.name || item.key || '';
+                const isVideo = name.toLowerCase().match(/\.(mp4|mov|webm|avi)$/);
                 html += `
-                    <div class="bitt-grid-item" data-key="${item.key || item.name}">
-                        ${isVideo ? `<video src="${item.url}"></video>` : `<img src="${item.url}" />`}
-                        <div class="bitt-grid-item-label">${item.name}</div>
+                    <div class="bitt-grid-item" data-key="${item.key || name}">
+                        ${isVideo ? `<video src="${item.url}" muted loop onmouseover="this.play()" onmouseout="this.pause()"></video>` : `<img src="${item.url}" />`}
+                        <div class="bitt-grid-item-label">${name.split('/').pop()}</div>
                     </div>
                 `;
             });
@@ -205,14 +223,21 @@
         const loadLocalGallery = async () => {
             body.innerHTML = '<div class="bitt-loading">Loading local gallery...</div>';
             try {
-                const items = await window.electronAPI.getLocalGallery();
-                renderGrid(items, async (name) => {
+                // localListDir is what the frontend hub uses
+                const items = await window.electronAPI.localListDir("");
+                const mediaItems = items.filter(i => !i.isDir && i.name.match(/\.(png|jpg|jpeg|mp4|mov|webm)$/i));
+                
+                renderGrid(mediaItems, async (key) => {
                     body.innerHTML = '<div class="bitt-loading">Syncing to Cloud...</div>';
-                    const res = await window.electronAPI.copyToInput(name, 'local');
+                    // Since copyToInput expects the filename, let's pass the relative path
+                    const res = await window.electronAPI.copyToInput(key, 'local');
                     if (res.success) handleSelectImage(res.filename);
-                    else alert("Error syncing: " + res.error);
+                    else { alert("Error syncing: " + res.error); loadLocalGallery(); }
                 });
-            } catch (e) { body.innerHTML = '<div class="bitt-loading">Error loading gallery</div>'; }
+            } catch (e) { 
+                console.error(e);
+                body.innerHTML = '<div class="bitt-loading">Error loading gallery. Check console.</div>'; 
+            }
         };
 
         const loadCloudGallery = async () => {
@@ -228,15 +253,20 @@
                     body.innerHTML = '<div class="bitt-loading">Downloading & Syncing...</div>';
                     const res = await window.electronAPI.copyToInput(key, 'r2');
                     if (res.success) handleSelectImage(res.filename);
-                    else alert("Error syncing: " + res.error);
+                    else { alert("Error syncing: " + res.error); loadCloudGallery(); }
                 });
-            } catch (e) { body.innerHTML = '<div class="bitt-loading">Error loading cloud</div>'; }
+            } catch (e) { 
+                console.error(e);
+                body.innerHTML = '<div class="bitt-loading">Error loading cloud. Check console.</div>'; 
+            }
         };
 
         const initPcTab = () => {
             body.innerHTML = `
-                <div style="display:flex; height:100%; align-items:center; justify-content:center; flex-direction: column; gap: 16px;">
-                    <p style="color: #aaa; text-align: center;">Select a file from your computer.<br/>It will be synced automatically for cloud rendering.</p>
+                <div style="display:flex; height:100%; align-items:center; justify-content:center; flex-direction: column; gap: 32px;">
+                    <div style="font-family: 'Satoshi', sans-serif; font-size: 1.2rem; color: #444; text-align: center; max-width: 400px; line-height: 1.5;">
+                        Choose a file from your device.<br/>It will be auto-synced with the Hub<br/>for Cloud Serverless rendering.
+                    </div>
                     <button class="bitt-btn" id="bitt-upload-pc">Browse Files</button>
                 </div>
             `;
@@ -250,16 +280,13 @@
                         handleSelectImage(res.filename);
                     } else if (res.error) {
                         alert("Error uploading: " + res.error);
-                        btn.innerText = "Browse Files";
-                        btn.disabled = false;
+                        initPcTab();
                     } else {
-                        btn.innerText = "Browse Files";
-                        btn.disabled = false;
+                        initPcTab();
                     }
                 } catch (e) {
                     alert("Upload failed.");
-                    btn.innerText = "Browse Files";
-                    btn.disabled = false;
+                    initPcTab();
                 }
             };
         };
