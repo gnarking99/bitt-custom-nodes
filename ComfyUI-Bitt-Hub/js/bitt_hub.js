@@ -9,7 +9,7 @@ app.registerExtension({
             btn.textContent = "✕ BACK TO HUB";
             
             if (isSidebar) {
-                btn.style.cssText = "background:#1A1918 !important; color:#ECE6DE !important; font-family:'Syncopate', sans-serif; font-size:12px; margin: 10px; border: 1px solid #333 !important; cursor: pointer !important; text-transform: uppercase; padding: 10px; border-radius: 4px; width: calc(100% - 20px); font-weight: bold; display: block;";
+                btn.style.cssText = "background:#1A1918 !important; color:#ECE6DE !important; font-family:'Syncopate', sans-serif; font-size:12px; margin: 10px; border: 1px solid #333 !important; cursor: pointer !important; text-transform: uppercase; padding: 10px; border-radius: 4px; display: inline-flex; justify-content: center; align-items: center; font-weight: bold;";
             } else {
                 btn.style.cssText = "background:#1A1918 !important; color:#ECE6DE !important; font-family:'Syncopate', sans-serif; font-size:11px; margin-right: 8px; margin-left: 8px; border: 1px solid #333 !important; cursor: pointer !important; text-transform: uppercase; padding: 4px 12px; height: 32px; border-radius: 4px; display: inline-flex; align-items: center; font-weight: bold;";
             }
@@ -20,12 +20,6 @@ app.registerExtension({
             return btn;
         };
 
-        // 1. Integración con UI Clásica
-        if (app.ui && app.ui.menuContainer) {
-            app.ui.menuContainer.prepend(createBackBtn(true));
-            return;
-        }
-
         // 2. Integración con API de menú de nueva UI (si está disponible)
         if (app.menu && app.menu.addAction) {
             app.menu.addAction({
@@ -33,6 +27,8 @@ app.registerExtension({
                 title: "✕ BACK TO HUB",
                 action: () => { if (window.electronAPI) window.electronAPI.goBack(); }
             });
+            // Si logró usar el API nativo del menú, no inyectamos botón sucio a menos que queramos doble botón.
+            // Opcional: return; para no inyectar el botón de fallback si el API del menú funcionó.
         }
 
         // 3. Fallback: Inyección directa en Navbar o Sidebar con MutationObserver
@@ -46,8 +42,8 @@ app.registerExtension({
                 return;
             }
 
-            // Si no hay topbar, buscar Sidebar (sugerido por usuario)
-            const sidebar = document.querySelector('[data-testid="side-toolbar"]') || document.querySelector('.side-tool-bar-container');
+            // Si no hay topbar, buscar Sidebar
+            const sidebar = document.querySelector('[data-testid="side-toolbar"]') || document.querySelector('.side-tool-bar-container') || document.querySelector('.comfy-menu');
             if (sidebar) {
                 sidebar.prepend(createBackBtn(true));
                 return;
