@@ -13,6 +13,7 @@ class BittCloudSave:
             "required": {
                 "images": ("IMAGE", ),
                 "project_name": (["Default"], ),
+                "task_name": ("STRING", {"default": "Main Task"}),
             }
         }
 
