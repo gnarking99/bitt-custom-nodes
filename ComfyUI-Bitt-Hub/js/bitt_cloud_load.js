@@ -1,3 +1,5 @@
+alert("BITT CLOUD LOAD JS is running!");
+
 import { app } from "../../scripts/app.js";
 
 // Modal CSS limits and styles matching our global app style
@@ -287,19 +289,15 @@ const openImagePicker = (node) => {
 
 app.registerExtension({
     name: "Bitt.CloudLoad",
-    async beforeRegisterNodeDef(nodeType, nodeData, app) {
-        if (nodeData.name === "BittCloudLoad") {
-            const onNodeCreated = nodeType.prototype.onNodeCreated;
-            nodeType.prototype.onNodeCreated = function () {
-                const r = onNodeCreated ? onNodeCreated.apply(this, arguments) : undefined;
-                
-                // Add the custom Select Image button
-                this.addWidget("button", "Select Image / Media", "Select Image", () => {
-                    openImagePicker(this);
-                });
-
-                return r;
-            };
+    nodeCreated(node) {
+        if (node.comfyClass === "BittCloudLoad") {
+            // Add the custom Select Image button
+            node.addWidget("button", "Select Image / Media", "Select Image", () => {
+                openImagePicker(node);
+            });
+            
+            // Adjust size to fit the new button
+            node.size = node.computeSize();
         }
     }
 });
