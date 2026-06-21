@@ -309,43 +309,8 @@
             }
         };
 
-        let cachedCloudItems = null;
-
-        const renderCloudProjects = (items) => {
-            const projects = {};
-            items.forEach(item => {
-                if (!item.key.match(/\.(png|jpg|jpeg|mp4|mov|webm)$/i)) return;
-                const p = item.project || "Uncategorized";
-                if (!projects[p]) projects[p] = [];
-                projects[p].push(item);
-            });
-            
-            const projectFolders = Object.keys(projects).map(p => ({
-                isDir: true,
-                key: p,
-                name: p
-            }));
-
-            renderItems(projectFolders, (selection) => {
-                if (selection.type === 'dir') {
-                    renderCloudItems(projects[selection.path], selection.path);
-                }
-            }, null, null);
-        };
-
-        const renderCloudItems = (items, project) => {
-            const mappedItems = items.map(i => ({...i, isDir: false}));
-            renderItems(mappedItems, async (selection) => {
-                body.innerHTML = '<div class="bitt-loading">Downloading & Syncing...</div>';
-                const res = await window.electronAPI.copyToInput(selection.key, 'r2');
-                if (res.success) handleSelectImage(res.filename);
-                else { alert("Error syncing: " + res.error); renderCloudItems(items, project); }
-            }, () => {
-                renderCloudProjects(cachedCloudItems);
-            }, project);
-        };
-
-        const loadCloudGallery = async () => {
+        
+        const loadCloudGallery = async (prefix = "") => {
             body.innerHTML = '<div class="bitt-loading">Loading cloud gallery...</div>';
             try {
                 const user = await window.electronAPI.getCurrentUser();
@@ -353,9 +318,54 @@
                     body.innerHTML = '<div class="bitt-loading">Please login to access cloud.</div>';
                     return;
                 }
-                const items = await window.electronAPI.getR2Gallery(user.username);
-                cachedCloudItems = items;
-                renderCloudProjects(items);
+                
+                // Usar el sistema de archivos (API) real del hub
+                const url = `http://127.0.0.1:8188/api/r2-list-dir?prefix=${encodeURIComponent(prefix)}&forceRefresh=false`;
+                const res = await fetch(url);
+                const data = await res.json();
+                
+                if (data.error) throw new Error(data.error);
+
+                const items = [];
+                // Agregar carpetas
+                if (data.folders) {
+                    data.folders.forEach(f => {
+                        items.push({
+                            isDir: true,
+                            key: f.path,
+                            name: f.name
+                        });
+                    });
+                }
+                // Agregar archivos
+                if (data.files) {
+                    data.files.forEach(f => {
+                        if (f.path.match(/\.(png|jpg|jpeg|mp4|mov|webm)$/i)) {
+                            items.push({
+                                isDir: false,
+                                key: f.path,
+                                name: f.name || f.path.split('/').pop(),
+                                url: `http://127.0.0.1:8188/api/r2-asset?key=${encodeURIComponent(f.path)}`
+                            });
+                        }
+                    });
+                }
+                
+                renderItems(items, async (selection) => {
+                    if (selection.type === 'dir') {
+                        loadCloudGallery(selection.path);
+                    } else {
+                        body.innerHTML = '<div class="bitt-loading">Downloading & Syncing...</div>';
+                        const copyRes = await window.electronAPI.copyToInput(selection.key, 'r2');
+                        if (copyRes.success) handleSelectImage(copyRes.filename);
+                        else { alert("Error syncing: " + copyRes.error); loadCloudGallery(prefix); }
+                    }
+                }, () => {
+                    const parts = prefix.split('/').filter(Boolean);
+                    parts.pop();
+                    loadCloudGallery(parts.length > 0 ? parts.join('/') + '/' : "");
+                }, prefix || "Root");
+                
             } catch (e) { 
                 console.error(e);
                 body.innerHTML = '<div class="bitt-loading">Error loading cloud. Check console.</div>'; 
